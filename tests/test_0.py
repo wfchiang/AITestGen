@@ -8,6 +8,9 @@ from aitestgen.parser import python_parser
 def foo (x :str): 
     assert(x[0:3] == "xyz")
 
+def bar (y :str): 
+    pass 
+
 # ====
 # Dummy pytest case 
 # ====

@@ -1,8 +1,5 @@
-class Operator : 
-    def __init__ (self, name :str):
-        assert(type(name) is str) 
-        self.name = name  
-        
+import ast 
+
 class Expression : 
     def __init__ (self): 
         pass 
@@ -24,8 +21,8 @@ class StrVariable (Variable):
         super().__init__(name) 
 
 class BinaryExpression (Expression): 
-    def __init__ (self, opt :Operator, lhs :Expression, rhs :Expression): 
-        assert(isinstance(opt, Operator))
+    def __init__ (self, opt :ast.operator, lhs :Expression, rhs :Expression): 
+        assert(isinstance(opt, ast.operator))
         assert(isinstance(lhs, Expression))
         assert(isinstance(rhs, Expression))
 
