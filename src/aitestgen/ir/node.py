@@ -2,9 +2,13 @@ from typing import List
 import ast 
 
 # ====
+# Global 
+# ====
+NEXT_VARIABLE_ID = 0 
+
+# ====
 # Class definition
 # ====
-
 class Expression : 
     def __init__ (self): 
         pass 
@@ -16,10 +20,29 @@ class Constant (Expression):
     def type (self): 
         return type(self.value) 
 
+class UnknownConstant (Constant): # a special constant which denotes "unknown" 
+    def __init__(self):
+        super().__init__(None)
+
 class Variable (Expression): 
     def __init__ (self, name :str):
+        global NEXT_VARIABLE_ID 
+
         assert(type(name) is str) 
-        self.name = name  
+        
+        self.id = NEXT_VARIABLE_ID 
+        NEXT_VARIABLE_ID += 1
+        
+        self.name = name 
+
+    def __hash__ (self): 
+        return int(self.id)
+
+    def __eq__ (self, __other): 
+        if (isinstance(__other, Variable)): 
+            return self.name == __other.name 
+        else: 
+            return False 
         
 class StrVariable (Variable): 
     def __init__(self, name: str):
@@ -35,45 +58,12 @@ class BinaryExpression (Expression):
         self.lhs = lhs 
         self.rhs = rhs 
 
-class TestGenerationContext : 
-    def __init__(self) -> None:
-        self.variables = [] 
-        self.conditions = [] 
-
-    def add_variable (self, var :Variable): 
-        assert(isinstance(var, StrVariable)), 'Error: currently, we only support string-variables' 
-        assert(all([var.name != v.name for v in self.variables])), 'Error: duplicated variable name: {}'.format(var.name)
-        self.variables.append(var) 
-
-    def add_variables (self, vars :List[Variable]): 
-        assert(isinstance(vars, List))
-        for v in vars: 
-            self.add_variable(v) 
-
-    def add_condition (self, cond): 
-        self.conditions.append(cond) 
-
-    def add_conditions (self, conds):
-        assert(isinstance(conds, List)) 
-        for c in conds: 
-            self.add_condition(c) 
-
-    def clone (self): 
-        # init my clone 
-        my_clone = TestGenerationContext() 
-
-        # setup the variables 
-        my_clone.add_variables(self.variables) 
-
-        # setup the conditions 
-        my_clone.add_conditions(self.conditions)
-
-        # return 
-        return my_clone
-
 # ====
 # Node generation functions 
 # ====
 def create_string_variable_from_arg (ast_arg :ast.arg): 
     assert(isinstance(ast_arg, ast.arg)) 
     return StrVariable(ast_arg.arg) 
+
+def create_new_temp_string_variable (): 
+    return StrVariable(f'__tmp_str_{NEXT_VARIABLE_ID}') # "NEXT_VARIABLE_ID" will be bumpped up by 1 by the constructor of class Variable
