@@ -1,8 +1,16 @@
 import ast, inspect
+import json 
 from typing import List 
 from functools import wraps 
+import logging 
 
 from ..ir import node as ir_node, symbolic_executor as ir_se
+
+# ====
+# Globals 
+# ====
+logger = logging.getLogger(__name__)
+logger.setLevel(logging.INFO)
 
 # ====
 # Decorator 
@@ -10,16 +18,25 @@ from ..ir import node as ir_node, symbolic_executor as ir_se
 def analyze (): 
     def _analyze_wrapper (f): 
         # Analyze function "f" 
-        print("Analyzing function {}".format(f)) 
+        logger.info("Analyzing function {}".format(f)) 
 
         # init the symbolic execution context 
         f_ast_node = ast.parse(inspect.getsource(f)) 
-        init_se_context = parse_ast_node_to_symbolic_execution_context(f_ast_node)
+        init_se_context = parse_ast_node_to_symbolic_execution_context(f_ast_node) 
+
+        # DEBUG 
+        logger.info(json.dumps(init_se_context.__dict__(), indent=4))
 
         # go for the symbolic execution 
         se_executor = ir_se.Executor() 
 
-        final_se_context = se_executor.step(init_se_context)
+        next_se_context = init_se_context 
+        while (len(next_se_context.statements) > 0): 
+            next_se_context = se_executor.step(next_se_context) 
+
+            # DEBUG 
+            logger.info(json.dumps(next_se_context.__dict__(), indent=4)) 
+        
 
         # Wrap the original function "f" and return 
         @wraps(f) 
@@ -52,7 +69,7 @@ def parse_ast_node_to_symbolic_execution_context (ast_node):
         
     elif (isinstance(ast_node, ast.FunctionDef)): 
         # Grab the function arguments 
-        func_args = list(map(lambda arg: ir_node.create_string_variable_from_arg(arg), ast_node.args.args)) 
+        func_args = list(map(lambda arg: ir_node.create_variable_from_arg(arg), ast_node.args.args)) 
 
         # Create a symbolic execution context 
         se_context = ir_se.ExecutionContext() 

@@ -1,4 +1,4 @@
-from typing import List 
+from typing import List, Union
 import ast 
 
 # ====
@@ -19,10 +19,19 @@ class Constant (Expression):
     
     def type (self): 
         return type(self.value) 
+    
+    def __str__ (self): 
+        if (self.type() is str): 
+            return '"{}"'.format(self.value)
+        else: 
+            return str(self.value)
 
 class UnknownConstant (Constant): # a special constant which denotes "unknown" 
     def __init__(self):
-        super().__init__(None)
+        super().__init__(None) 
+    
+    def __str__ (self): 
+        return '(Unknown)'
 
 class Variable (Expression): 
     def __init__ (self, name :str):
@@ -40,9 +49,12 @@ class Variable (Expression):
 
     def __eq__ (self, __other): 
         if (isinstance(__other, Variable)): 
-            return self.name == __other.name 
+            return self.name == __other.name and self.id == __other.id 
         else: 
             return False 
+        
+    def __str__ (self): 
+        return f'###{self.name}_{self.id}###'
         
 class StrVariable (Variable): 
     def __init__(self, name: str):
@@ -58,12 +70,19 @@ class BinaryExpression (Expression):
         self.lhs = lhs 
         self.rhs = rhs 
 
+    def __str__ (self): 
+        return '({}, {}, {})'.format(str(self.opt), str(self.lhs), str(self.rhs))
+
 # ====
 # Node generation functions 
 # ====
-def create_string_variable_from_arg (ast_arg :ast.arg): 
-    assert(isinstance(ast_arg, ast.arg)) 
-    return StrVariable(ast_arg.arg) 
+def create_variable_from_name (var :Union[str, ast.Name]): 
+    assert(type(var) is str or isinstance(var, ast.Name))
+    return Variable(name=(var if (type(var) is str) else var.id))
 
-def create_new_temp_string_variable (): 
-    return StrVariable(f'__tmp_str_{NEXT_VARIABLE_ID}') # "NEXT_VARIABLE_ID" will be bumpped up by 1 by the constructor of class Variable
+def create_variable_from_arg (ast_arg :ast.arg): 
+    assert(isinstance(ast_arg, ast.arg)) 
+    return Variable(ast_arg.arg) 
+
+def create_temp_variable (): 
+    return Variable(f'__tmp_') # "NEXT_VARIABLE_ID" will be bumpped up by 1 by the constructor of class Variable
