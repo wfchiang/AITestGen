@@ -69,7 +69,10 @@ class UnaryExpression (Expression):
         self.operand = operand 
 
     def __str__ (self): 
-        return '({}, {})'.format(str(self.opt), str(self.operand))
+        return '({}, {})'.format(
+            str(self.opt.__class__.__name__), 
+            str(self.operand)
+        )
 
 class BinaryExpression (Expression): 
     def __init__ (self, opt :ast.operator, lhs :Expression, rhs :Expression): 
@@ -82,7 +85,11 @@ class BinaryExpression (Expression):
         self.rhs = rhs 
 
     def __str__ (self): 
-        return '({}, {}, {})'.format(str(self.opt), str(self.lhs), str(self.rhs))
+        return '({}, {}, {})'.format(
+            str(self.opt.__class__.__name__), 
+            str(self.lhs), 
+            str(self.rhs)
+        )
 
 # ====
 # Node generation functions 
