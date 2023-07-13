@@ -11,6 +11,8 @@ from . import node as ir_node
 logger = logging.getLogger(__name__) 
 logger.setLevel(logging.INFO) 
 
+MAX_BRANCH_DEPTH = 3
+
 # ====
 # Class definition(s) 
 # ====
@@ -89,7 +91,8 @@ class ExecutionContext :
             "store": store, 
             "next_statement": (None if (len(self.statements) == 0) else ast.dump(self.statements[0], indent=4)), 
             "num_statements": len(self.statements), 
-            "branch_depth": self.branch_depth
+            "branch_depth": self.branch_depth, 
+            "conditions": [str(c) for c in self.conditions]
         }
 
 class Executor : 
@@ -97,7 +100,10 @@ class Executor :
         self.max_branch_depth = max_branch_depth
 
     # Execute one statement from the context 
-    # It takes an initial context, and generates the "next-stage" context 
+    # It takes an initial context, and generates the "next-stage" context(s) 
+    # Note that some statement may create 2 "next-stage" contexts 
+    # So, this "step" function will return 2 next-stage contexts: true-br and false-br 
+    # If there is only one context returned, false-br will be None 
     def step (self, exe_context :ExecutionContext): 
         assert(isinstance(exe_context, ExecutionContext)) 
 
@@ -106,10 +112,11 @@ class Executor :
 
         else: 
             # clone the context and pop for the statement 
-            next_exe_context = exe_context.clone()
+            true_br_context = exe_context.clone()
+            false_br_context = None 
 
-            curr_statement = next_exe_context.statements[0] 
-            next_exe_context.statements = next_exe_context.statements[1:] 
+            curr_statement = true_br_context.statements[0] 
+            true_br_context.statements = true_br_context.statements[1:] 
 
             # execute the statement 
             try: 
@@ -119,16 +126,22 @@ class Executor :
                     if (len(targets) > 1): 
                         logger.error('[WARNING] multi assignment target ({}) is not supported...'.format(len(targets)))
                         logger.error(ast.dump(curr_statement, indent=4))
-                        logger.error('-- targets --')
-                        for t in targets: 
-                            logger.error(ast.dump(t, indent=4))
-                        pass 
 
                     else: 
                         target = targets[0] 
                         assert(isinstance(target, ast.Name)), '[WARNING] only support target as Name for Assign...' 
-                        source = self.eval(expr=curr_statement.value, exe_context=next_exe_context) 
-                        next_exe_context.add_to_store(var=target, val=source) 
+                        source = self.eval(expr=curr_statement.value, exe_context=true_br_context) 
+                        true_br_context.add_to_store(var=target, val=source) 
+                        
+                elif (isinstance(curr_statement, ast.Assert)): 
+                    test_expr = self.eval(curr_statement.test, exe_context=true_br_context) 
+                    true_br_context.branch_depth = true_br_context.branch_depth + 1 
+                    
+                    if (true_br_context.branch_depth <= MAX_BRANCH_DEPTH): 
+                        false_br_context = true_br_context.clone() 
+                        false_br_context.conditions.append(ir_node.negate_expression(test_expr))
+                    
+                    true_br_context.conditions.append(test_expr) 
 
                 else: 
                     logger.error('[WARNING] unsupported statement -- skipping and relaxing the constraint')
@@ -140,28 +153,49 @@ class Executor :
                 logger.error('Stepping failed... Ignore the above error and continue...') 
 
             # return 
-            return next_exe_context 
+            return true_br_context, false_br_context 
 
     # Evaluate the ast node. 
-    # It should return an ir_node.Expression or None for error 
+    # It should return an ir_node.Expression 
+    # For any unhandled evaluation scenario, we will just return ir_node.UnknownConstant() 
     def eval (self, expr :ast.AST, exe_context :ExecutionContext): 
         assert(isinstance(expr, ast.AST))
         assert(isinstance(exe_context, ExecutionContext))
 
-        eval_result = None 
+        eval_result = ir_node.UnknownConstant()  
 
         try: 
             if (isinstance(expr, ast.Constant)): 
-                return ir_node.Constant(expr.value) 
+                eval_result = ir_node.Constant(expr.value) 
             
             elif (isinstance(expr, ast.Name)): 
                 eval_result = exe_context.query_store_for_latest_var_by_name(expr.id)
 
+            elif (isinstance(expr, ast.UnaryOp)): 
+                eval_result = ir_node.UnaryExpression(
+                    opt=expr.op, 
+                    operand=self.eval(expr.operand, exe_context)
+                )
+
             elif (isinstance(expr, ast.BinOp)): 
-                return ir_node.BinaryExpression(
+                eval_result = ir_node.BinaryExpression(
                     opt=expr.op, 
                     lhs=self.eval(expr.left, exe_context), 
                     rhs=self.eval(expr.right, exe_context) 
+                )
+            
+            elif (isinstance(expr, ast.Compare)): 
+                assert(len(expr.ops) == 1), 'Only support ast.Compare with 1 ops for now...'
+                assert(len(expr.comparators) == 1), 'Only support ast.Compare with 1 comparators for now...' 
+
+                op = expr.ops[0] 
+                lhs = self.eval(expr.left, exe_context) 
+                rhs = self.eval(expr.comparators[0], exe_context) 
+
+                eval_result = ir_node.BinaryExpression(
+                    opt=op, 
+                    lhs=lhs, 
+                    rhs=rhs 
                 )
 
             else: 

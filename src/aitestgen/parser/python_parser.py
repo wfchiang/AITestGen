@@ -4,7 +4,8 @@ from typing import List
 from functools import wraps 
 import logging 
 
-from ..ir import node as ir_node, symbolic_executor as ir_se
+from ..ir import node as ir_node, symbolic_executor as ir_se 
+from . import ir_2_llm_prompt 
 
 # ====
 # Globals 
@@ -30,13 +31,29 @@ def analyze ():
         # go for the symbolic execution 
         se_executor = ir_se.Executor() 
 
-        next_se_context = init_se_context 
-        while (len(next_se_context.statements) > 0): 
-            next_se_context = se_executor.step(next_se_context) 
+        next_se_contexts = [init_se_context] 
+        final_se_contexts = [] 
+        while (len(next_se_contexts) > 0): 
+            # pop one symbolic execution context 
+            next_se_context = next_se_contexts[0]
+            next_se_contexts = next_se_contexts[1:]
 
             # DEBUG 
             logger.info(json.dumps(next_se_context.__dict__(), indent=4)) 
-        
+
+            # Go for a step for the context 
+            if (len(next_se_context.statements) == 0): # if there is no more statement to execute, add it to the final contexts 
+                final_se_contexts.append(next_se_context) 
+            
+            else: 
+                true_br_context, false_br_context = se_executor.step(next_se_context)
+                assert(true_br_context is not None) 
+                next_se_contexts.append(true_br_context) 
+                if (false_br_context is not None): 
+                    next_se_contexts.append(false_br_context)
+
+        # DEBUG 
+        ir_2_llm_prompt.generate_prompt_from_execution_context(final_se_contexts[1])
 
         # Wrap the original function "f" and return 
         @wraps(f) 

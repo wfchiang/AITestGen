@@ -60,9 +60,20 @@ class StrVariable (Variable):
     def __init__(self, name: str):
         super().__init__(name) 
 
+class UnaryExpression (Expression): 
+    def __init__(self, opt :ast.operator, operand :Expression): 
+        assert(isinstance(opt, ast.unaryop)), 'Invalid opt for UnaryExpression: {}'.format(opt)
+        assert(isinstance(operand, Expression))
+        
+        self.opt = opt 
+        self.operand = operand 
+
+    def __str__ (self): 
+        return '({}, {})'.format(str(self.opt), str(self.operand))
+
 class BinaryExpression (Expression): 
     def __init__ (self, opt :ast.operator, lhs :Expression, rhs :Expression): 
-        assert(isinstance(opt, ast.operator))
+        assert(isinstance(opt, ast.operator) or isinstance(opt, ast.cmpop)), 'Invalid opt for BinaryExpression: {}'.format(opt)
         assert(isinstance(lhs, Expression))
         assert(isinstance(rhs, Expression))
 
@@ -86,3 +97,11 @@ def create_variable_from_arg (ast_arg :ast.arg):
 
 def create_temp_variable (): 
     return Variable(f'__tmp_') # "NEXT_VARIABLE_ID" will be bumpped up by 1 by the constructor of class Variable
+
+def negate_expression (expr :Expression): 
+    assert(isinstance(expr, Expression)) 
+
+    if (isinstance(expr, UnaryExpression) and isinstance(expr.opt, ast.Not)):
+        return expr.operand 
+    else: 
+        return UnaryExpression(opt=ast.Not(), operand=expr) 

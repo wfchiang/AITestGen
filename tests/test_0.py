@@ -11,7 +11,7 @@ def foo (x :str):
     b = a 
     a = a + 'x'
     c = a 
-    # assert(x[0:3] == "xyz")
+    assert(not (c == '1xx'))
 
 def bar (y :str): 
     pass 
