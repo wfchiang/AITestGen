@@ -18,7 +18,11 @@ MAX_NUM_TRIALS = 3
 # Each context is an ExecutionContext 
 # Each solution is a map of variable->(str-)value
 # ====
-def solve_for_test_cases (exe_context :ExecutionContext, max_num_trials :int=MAX_NUM_TRIALS): 
+def solve_for_test_cases (
+        exe_context :ExecutionContext, 
+        openai_api_key :str=None, 
+        max_num_trials :int=MAX_NUM_TRIALS
+): 
     assert(max_num_trials > 0)
 
     # symbolically execute the code to explore the final contexts 
@@ -26,7 +30,7 @@ def solve_for_test_cases (exe_context :ExecutionContext, max_num_trials :int=MAX
     final_contexts = symbolic_executor.execute(exe_context) 
 
     # solve for the test-cases 
-    chatgpt_client = ChatGPTClient() 
+    chatgpt_client = ChatGPTClient(openai_api_key=openai_api_key) 
     context_solution_list = [] 
     for f_ctx in final_contexts: 
         original_f_ctx = f_ctx.clone()
