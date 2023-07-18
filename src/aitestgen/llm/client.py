@@ -1,7 +1,7 @@
 import os 
 from abc import ABC, abstractmethod
 from typing import Dict
-import openai 
+import requests
 
 from ..ir import node as ir_node 
 from ..ir.symbolic_executor import ExecutionContext
@@ -26,15 +26,19 @@ class AbstractLLMClient (ABC):
 class ChatGPTClient (AbstractLLMClient): 
     def __init__(
             self, 
+            openai_api_key :str=None, 
             model :str='text-davinci-003', 
             default_max_tokens :int=256
     ) -> None:
         super().__init__()
 
+        self.openai_url = 'https://api.openai.com/v1/completions'
+
         # configure openai authentication 
-        openai_api_key = os.environ.get('OPENAI_API_KEY') 
+        if (type(openai_api_key) is not str): 
+            openai_api_key = os.environ.get('OPENAI_API_KEY') 
         assert(type(openai_api_key) is str)
-        openai.api_key = openai_api_key 
+        self.openai_api_key = openai_api_key
 
         # configure parameters 
         self.model = model 
@@ -50,12 +54,21 @@ class ChatGPTClient (AbstractLLMClient):
         prompt = ir_2_llm_prompt.generate_prompt_from_execution_context(exe_context) 
 
         # call ChatGPT for the answer 
-        chatgpt_reps = openai.Completion.create(
-            model=self.model, 
-            prompt=prompt, 
-            max_tokens=(max_tokens if (type(max_tokens) is int and max_tokens > 0) else self.default_max_tokens), 
-            temperature=self.temperature
-        )
+        chatgpt_reps = requests.post(
+            self.openai_url, 
+            headers={
+                'Authorization': 'Bearer ' + self.openai_api_key
+            }, 
+            json={
+                'model': self.model, 
+                'prompt': prompt, 
+                'max_tokens': (max_tokens if (type(max_tokens) is int and max_tokens > 0) else self.default_max_tokens), 
+                'temperature': self.temperature
+            }
+        ) 
+        assert(chatgpt_reps.status_code == 200)
+
+        chatgpt_reps = chatgpt_reps.json() # get the response payload 
 
         # retrieve ChatGpt's top-choice answer 
         assert(isinstance(chatgpt_reps, Dict)) 
