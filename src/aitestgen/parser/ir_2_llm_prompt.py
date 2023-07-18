@@ -164,14 +164,14 @@ Here are the relations among the string variables.
 
     final_prompt += """
 You must respect the afore given constraints. 
-You must only provide brief answers. 
+You must only provide concrete examples as brief answers. 
 You must answer in brief in the following format: 
 {}
 {}
 """.format(answer_template_sent, unbound_vars_sent)
 
     # DEBUG 
-    print(final_prompt)
+    # print(final_prompt)
 
     # return 
     return final_prompt 

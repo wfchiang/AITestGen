@@ -4,8 +4,9 @@ from typing import List
 from functools import wraps 
 import logging 
 
-from ..ir import node as ir_node, symbolic_executor as ir_se 
-from . import ir_2_llm_prompt 
+from ..ir import node as ir_node 
+from ..ir import symbolic_executor as ir_se
+from ..ir import solver as ir_solver 
 
 # ====
 # Globals 
@@ -21,39 +22,22 @@ def analyze ():
         # Analyze function "f" 
         logger.info("Analyzing function {}".format(f)) 
 
-        # init the symbolic execution context 
-        f_ast_node = ast.parse(inspect.getsource(f)) 
-        init_se_context = parse_ast_node_to_symbolic_execution_context(f_ast_node) 
+        # Extract the function source code 
+        function_source_code = inspect.getsource(f)
+
+        # Create the initial context 
+        init_exe_context = parse_source_code_to_symbolic_execution_context(function_source_code)
+        
+        # Solve for the test cases 
+        context_solution_list = ir_solver.solve_for_test_cases(init_exe_context)
 
         # DEBUG 
-        logger.info(json.dumps(init_se_context.__dict__(), indent=4))
-
-        # go for the symbolic execution 
-        se_executor = ir_se.Executor() 
-
-        next_se_contexts = [init_se_context] 
-        final_se_contexts = [] 
-        while (len(next_se_contexts) > 0): 
-            # pop one symbolic execution context 
-            next_se_context = next_se_contexts[0]
-            next_se_contexts = next_se_contexts[1:]
-
-            # DEBUG 
-            logger.info(json.dumps(next_se_context.__dict__(), indent=4)) 
-
-            # Go for a step for the context 
-            if (len(next_se_context.statements) == 0): # if there is no more statement to execute, add it to the final contexts 
-                final_se_contexts.append(next_se_context) 
-            
-            else: 
-                true_br_context, false_br_context = se_executor.step(next_se_context)
-                assert(true_br_context is not None) 
-                next_se_contexts.append(true_br_context) 
-                if (false_br_context is not None): 
-                    next_se_contexts.append(false_br_context)
-
-        # DEBUG 
-        ir_2_llm_prompt.generate_prompt_from_execution_context(final_se_contexts[1])
+        print('# of solutions: {}'.format(len(context_solution_list)))
+        for ctx, sol in context_solution_list: 
+            print('==== Context ====')
+            print(ctx.__dict__())
+            print('==== Solution ====')
+            print(sol.__dict__())
 
         # Wrap the original function "f" and return 
         @wraps(f) 
@@ -101,4 +85,10 @@ def parse_ast_node_to_symbolic_execution_context (ast_node):
         return se_context
 
     else: 
-        raise UnhandledScenarioException("Unhandled AST node type: {} : {}".format(type(ast_node), ast.dump(ast_node, indent=4)))
+        raise UnhandledScenarioException("Unhandled AST node type: {} : {}".format(type(ast_node), ast.dump(ast_node, indent=4))) 
+    
+def parse_source_code_to_symbolic_execution_context (code :str): 
+    assert(type(code) is str) 
+
+    ast_node = ast.parse(code) 
+    return parse_ast_node_to_symbolic_execution_context(ast_node) 

@@ -108,7 +108,7 @@ class Executor :
         assert(isinstance(exe_context, ExecutionContext)) 
 
         if (len(exe_context.statements) == 0): # no statement to execute 
-            return None 
+            return exe_context, None 
 
         else: 
             # clone the context and pop for the statement 
@@ -139,6 +139,7 @@ class Executor :
                     
                     if (true_br_context.branch_depth <= MAX_BRANCH_DEPTH): 
                         false_br_context = true_br_context.clone() 
+                        false_br_context.statements = [] # the false path of an Assert should terminate the execution 
                         false_br_context.conditions.append(ir_node.negate_expression(test_expr))
                     
                     true_br_context.conditions.append(test_expr) 
@@ -206,4 +207,30 @@ class Executor :
             logger.error('Evaluation failed... Ignore the above error and continue...')
         
         # return 
-        return eval_result
+        return eval_result 
+    
+    # Given an execution context, execute the program to the termination 
+    # Using the "Depth-first-search" manner 
+    def execute (self, exe_context :ExecutionContext): 
+        assert(isinstance(exe_context, ExecutionContext)) 
+
+        pending_contexts = [exe_context] 
+        final_contexts = [] 
+        while (len(pending_contexts) > 0): 
+            # pop a context 
+            ctx = pending_contexts[0] 
+            pending_contexts = pending_contexts[1:] 
+
+            # check if there is any statement to "step" 
+            if (len(ctx.statements) == 0): 
+                final_contexts.append(ctx) 
+            
+            else: # step! 
+                true_br_ctx, false_br_ctx = self.step(exe_context=ctx) 
+                if (isinstance(false_br_ctx, ExecutionContext)): 
+                    pending_contexts = [true_br_ctx, false_br_ctx] + pending_contexts
+                else: 
+                    pending_contexts = [true_br_ctx] + pending_contexts 
+
+        # return 
+        return final_contexts 
