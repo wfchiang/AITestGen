@@ -8,7 +8,7 @@ The proof-of-concept is implemented in Python.
 First setup your own OpenAI key: 
 
 ```BASH 
-export OPENAI_API_KEY=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
+export OPENAI_API_KEY=<your_openai_api_hey>
 ```
 
 Then run Pytest: 

@@ -139,6 +139,7 @@ class Executor :
                     
                     if (true_br_context.branch_depth <= MAX_BRANCH_DEPTH): 
                         false_br_context = true_br_context.clone() 
+                        false_br_context.statements = [] # the false path of an Assert should terminate the execution 
                         false_br_context.conditions.append(ir_node.negate_expression(test_expr))
                     
                     true_br_context.conditions.append(test_expr) 
