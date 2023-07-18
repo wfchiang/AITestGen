@@ -164,7 +164,7 @@ Here are the relations among the string variables.
 
     final_prompt += """
 You must respect the afore given constraints. 
-You must only provide brief answers. 
+You must only provide concrete examples as brief answers. 
 You must answer in brief in the following format: 
 {}
 {}

@@ -4,7 +4,7 @@ from typing import Dict
 import openai 
 
 from ..ir import node as ir_node 
-from ..ir.symbolic_executor import ExecutionContext 
+from ..ir.symbolic_executor import ExecutionContext
 
 from ..parser import ir_2_llm_prompt 
 
@@ -79,13 +79,16 @@ class ChatGPTClient (AbstractLLMClient):
                 val = saying[i+1:].strip().strip('"') 
                 var_name_2_str_val[var_name] = val 
 
-        var_2_str_val = {} 
+        # create a Solution object 
+        solution = ir_node.Solution() 
         for var in exe_context.store.keys(): 
             var_name = str(var) 
             if (var_name in var_name_2_str_val): 
-                var_2_str_val[var] = var_name_2_str_val[var_name]
+                val = ir_node.Constant(var_name_2_str_val[var_name])
+                solution.add(var, val)
+                continue 
 
         # return 
-        return var_2_str_val 
+        return solution 
 
     

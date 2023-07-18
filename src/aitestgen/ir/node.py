@@ -1,4 +1,4 @@
-from typing import List, Union
+from typing import List, Union, Any
 import ast 
 
 # ====
@@ -90,6 +90,32 @@ class BinaryExpression (Expression):
             str(self.lhs), 
             str(self.rhs)
         )
+    
+# ====
+# Solution: a map of Variable to Constant 
+# ====
+class Solution: 
+    def __init__(self) -> None:
+        self.assignments = {} 
+    
+    def add (self, var :Variable, val :Any): 
+        assert(isinstance(var, Variable))
+        if (not isinstance(val, Constant)): 
+            val = Constant(val) 
+
+        self.assignments[var] = val 
+
+    def __dict__ (self): 
+        to_dict = {} 
+        for var, val in self.assignments.items(): 
+            to_dict[str(var)] = val.value 
+        return to_dict 
+    
+    def clone (self): 
+        another_me = Solution() 
+        for var, val in self.assignments.items(): 
+            another_me.add(var, val) 
+        return another_me
 
 # ====
 # Node generation functions 
@@ -112,3 +138,19 @@ def negate_expression (expr :Expression):
         return expr.operand 
     else: 
         return UnaryExpression(opt=ast.Not(), operand=expr) 
+    
+# ====
+# Some util functions 
+# ====
+# Given an Expression, count the number of variables as "leaf" in the Expression 
+def count_num_leaf_variables (expr :Expression): 
+    if (isinstance(expr, Constant)): 
+        return 0 
+    elif (isinstance(expr, Variable)): 
+        return 1 
+    elif (isinstance(expr, UnaryExpression)): 
+        return count_num_leaf_variables(expr.operand) 
+    elif (isinstance(expr, BinaryExpression)): 
+        return count_num_leaf_variables(expr.lhs) + count_num_leaf_variables(expr.rhs) 
+    else: 
+        assert(False), 'Invalid type of expression for count_num_leaf_variables: {}'.format(expr) 

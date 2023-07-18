@@ -12,6 +12,7 @@ def foo (x :str):
     a = a + 'k'
     c = a 
     assert(not (c == 'okk'))
+    assert(b == 'ok')
 
 def bar (y :str): 
     pass 
