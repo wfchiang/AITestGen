@@ -7,12 +7,12 @@ from aitestgen.parser import python_parser
 @python_parser.analyze() 
 def foo (x :str): 
     a = x
-    a = a + 'k'
+    a = a + '2'
     b = a 
-    a = a + 'k'
+    a = a + '3'
     c = a 
-    assert(not (c == 'okk'))
-    assert(b == 'ok')
+    assert(not (c == '123'))
+    assert(b == '32')
 
 def bar (y :str): 
     pass 

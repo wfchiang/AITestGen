@@ -31,6 +31,14 @@ def analyze ():
         # Solve for the test cases 
         context_solution_list = ir_solver.solve_for_test_cases(init_exe_context)
 
+        # DEBUG 
+        print('# of solutions: {}'.format(len(context_solution_list)))
+        for ctx, sol in context_solution_list: 
+            print('==== Context ====')
+            print(ctx.__dict__())
+            print('==== Solution ====')
+            print(sol.__dict__())
+
         # Wrap the original function "f" and return 
         @wraps(f) 
         def _f_wrapper (*args, **kwargs): 

@@ -33,8 +33,8 @@ def solve_for_test_cases (exe_context :ExecutionContext, max_num_trials :int=MAX
 
         for trial in range(0, max_num_trials): 
             # DEBUG 
-            print('==== Context ====')
-            print(f_ctx.__dict__())
+            # print('==== Context ====')
+            # print(f_ctx.__dict__())
 
             sol = chatgpt_client.solve_context(f_ctx) 
 
@@ -46,7 +46,8 @@ def solve_for_test_cases (exe_context :ExecutionContext, max_num_trials :int=MAX
                 context_solution_list.append((original_f_ctx, sol)) 
 
                 # DEBUG 
-                print(sol.__dict__())
+                # print('==== Solution ====')
+                # print(sol.__dict__())
 
                 break 
 
