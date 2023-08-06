@@ -6,16 +6,12 @@ from aitestgen.parser import python_parser
 # ====
 @python_parser.analyze() 
 def foo (x :str): 
-    a = x
-    a = a + '2'
-    b = a 
-    a = a + '3'
-    c = a 
-    assert(not (c == '123'))
-    assert(b == '32')
+    assert(len(x) == 3)
+    assert(x[0:1] == 'x')
+    assert(x.endswith('z'))
 
 # ====
 # Dummy pytest case 
 # ====
-def test_0 (): 
+def test_1 (): 
     pass 
