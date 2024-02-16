@@ -1,6 +1,6 @@
 [tool.poetry]
 name = "aitestgen"
-version = "0.1.1"
+version = "0.2.0"
 description = "AI driven test generation"
 authors = ["wfchiang <weifan.wf@gmail.com>"]
 readme = "README.md"

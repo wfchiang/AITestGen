@@ -1,5 +1,5 @@
 from typing import List, Union, Any
-import ast 
+import json 
 
 # ====
 # Global 
@@ -10,30 +10,32 @@ NEXT_VARIABLE_ID = 0
 # Class definition
 # ====
 class Expression : 
+    operator :str = None 
+    operands :List = None 
+
     def __init__ (self): 
         pass 
 
+    def as_json (self) -> List:
+        return json.dumps([self.operator] + [opd.as_json() for opd in self.operands])
+
 class Constant (Expression): 
     def __init__ (self, value): 
-        self.value = value 
+        self.operands = [value] 
     
     def type (self): 
-        return type(self.value) 
+        return type(self.value)
     
-    def __str__ (self): 
-        if (self.type() is str): 
-            return '"{}"'.format(self.value)
-        else: 
-            return str(self.value)
-
-class UnknownConstant (Constant): # a special constant which denotes "unknown" 
-    def __init__(self):
-        super().__init__(None) 
+    @property
+    def value (self): 
+        return self.operands[0]
     
-    def __str__ (self): 
-        return '(Unknown)'
+    def as_json(self) -> List:
+        return self.value 
 
 class Variable (Expression): 
+    operator :str = "var"
+
     def __init__ (self, name :str):
         global NEXT_VARIABLE_ID 
 
@@ -43,6 +45,7 @@ class Variable (Expression):
         NEXT_VARIABLE_ID += 1
         
         self.name = name 
+        self.operands = [f"{self.name}_{self.id}"]
 
     def __hash__ (self): 
         return int(self.id)
@@ -53,43 +56,46 @@ class Variable (Expression):
         else: 
             return False 
         
-    def __str__ (self): 
-        return f'###{self.name}_{self.id}###'
-        
-class StrVariable (Variable): 
-    def __init__(self, name: str):
-        super().__init__(name) 
+    @classmethod
+    def get_tmp_var (cls): 
+        return cls("__var")
+
+class StringOperation (Expression): 
+    operators = [
+        "subStr", 
+        "startsWith", 
+        "endsWith",
+    ] 
+
+    def __init__(self, opt :str, opds :List):
+        assert(opt in StringOperation.operators) 
+
+        self.operator = opt 
+        self.operands = opds[:]
 
 class UnaryExpression (Expression): 
-    def __init__(self, opt :ast.operator, operand :Expression): 
-        assert(isinstance(opt, ast.unaryop)), 'Invalid opt for UnaryExpression: {}'.format(opt)
-        assert(isinstance(operand, Expression))
-        
-        self.opt = opt 
-        self.operand = operand 
+    operators = [
+        "not"
+    ]
 
-    def __str__ (self): 
-        return '({}, {})'.format(
-            str(self.opt.__class__.__name__), 
-            str(self.operand)
-        )
+    def __init__(self, opt :str, opds :List):
+        assert(opt in UnaryExpression.operators)
+        assert(len(opds) == 1)
+
+        self.operator = opt 
+        self.operands = opds[:]
 
 class BinaryExpression (Expression): 
-    def __init__ (self, opt :ast.operator, lhs :Expression, rhs :Expression): 
-        assert(isinstance(opt, ast.operator) or isinstance(opt, ast.cmpop)), 'Invalid opt for BinaryExpression: {}'.format(opt)
-        assert(isinstance(lhs, Expression))
-        assert(isinstance(rhs, Expression))
+    operators = [
+        "=="
+    ]
 
-        self.opt = opt 
-        self.lhs = lhs 
-        self.rhs = rhs 
+    def __init__ (self, opt :str, opds :List): 
+        assert(opt in BinaryExpression.operators)
+        assert(len(opds) == 2) 
 
-    def __str__ (self): 
-        return '({}, {}, {})'.format(
-            str(self.opt.__class__.__name__), 
-            str(self.lhs), 
-            str(self.rhs)
-        )
+        self.operator = opt 
+        self.operands = opds[:]
     
 # ====
 # Solution: a map of Variable to Constant 
@@ -116,28 +122,6 @@ class Solution:
         for var, val in self.assignments.items(): 
             another_me.add(var, val) 
         return another_me
-
-# ====
-# Node generation functions 
-# ====
-def create_variable_from_name (var :Union[str, ast.Name]): 
-    assert(type(var) is str or isinstance(var, ast.Name))
-    return Variable(name=(var if (type(var) is str) else var.id))
-
-def create_variable_from_arg (ast_arg :ast.arg): 
-    assert(isinstance(ast_arg, ast.arg)) 
-    return Variable(ast_arg.arg) 
-
-def create_temp_variable (): 
-    return Variable(f'__tmp_') # "NEXT_VARIABLE_ID" will be bumpped up by 1 by the constructor of class Variable
-
-def negate_expression (expr :Expression): 
-    assert(isinstance(expr, Expression)) 
-
-    if (isinstance(expr, UnaryExpression) and isinstance(expr.opt, ast.Not)):
-        return expr.operand 
-    else: 
-        return UnaryExpression(opt=ast.Not(), operand=expr) 
     
 # ====
 # Some util functions 
@@ -148,9 +132,8 @@ def count_num_leaf_variables (expr :Expression):
         return 0 
     elif (isinstance(expr, Variable)): 
         return 1 
-    elif (isinstance(expr, UnaryExpression)): 
-        return count_num_leaf_variables(expr.operand) 
-    elif (isinstance(expr, BinaryExpression)): 
-        return count_num_leaf_variables(expr.lhs) + count_num_leaf_variables(expr.rhs) 
     else: 
-        assert(False), 'Invalid type of expression for count_num_leaf_variables: {}'.format(expr) 
+        leaves = 0 
+        for opd in expr.operands: 
+            leaves += count_num_leaf_variables(opd) 
+        return leaves
