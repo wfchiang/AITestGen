@@ -98,29 +98,27 @@ class BinaryExpression (Expression):
         self.operands = opds[:]
     
 # ====
-# Solution: a map of Variable to Constant 
+# State: a mapping from variable to expression 
 # ====
-class Solution: 
+class State: 
     def __init__(self) -> None:
-        self.assignments = {} 
+        self.var_2_expr = {}  
     
-    def add (self, var :Variable, val :Any): 
+    def add (self, var :Variable, value :Expression): 
         assert(isinstance(var, Variable))
-        if (not isinstance(val, Constant)): 
-            val = Constant(val) 
+        assert(isinstance(value, Expression))
+        self.var_2_expr[var] = value 
 
-        self.assignments[var] = val 
-
-    def __dict__ (self): 
-        to_dict = {} 
-        for var, val in self.assignments.items(): 
-            to_dict[str(var)] = val.value 
-        return to_dict 
+    def to_json (self):
+        state_json = {}  
+        for var, value in self.var_2_expr.items(): 
+            state_json[var.operands[0]] = value.to_json() 
+        return state_json
     
     def clone (self): 
-        another_me = Solution() 
-        for var, val in self.assignments.items(): 
-            another_me.add(var, val) 
+        another_me = State()  
+        for var, value in self.var_2_expr.items(): 
+            another_me.add(var, value) 
         return another_me
     
 # ====
