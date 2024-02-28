@@ -3,8 +3,7 @@ from .node import Expression
 from .node import Constant, Variable
 from .node import StringOperation
 from .node import UnaryExpression, BinaryExpression
-from .node import Statement 
-from .node import AssignStatement
+from .node import AssignStatement, AssertStatement
 
 import logging
 logging.basicConfig(level=logging.INFO)
@@ -12,14 +11,12 @@ logging.basicConfig(level=logging.INFO)
 class ExecutionContext : 
     def __init__ (self): 
         self.store = {} # Variable (Expression) -> Expression
-        self.conditions = [] 
         self.executed_statements = []
         self.unbounded_variables = [] 
 
     def clone (self): 
         my_clone = ExecutionContext() 
         my_clone.store = { k:v for k,v in self.store.items() }
-        my_clone.conditions = self.conditions[:]
         my_clone.executed_statements = self.executed_statements[:]
         my_clone.unbounded_variables = self.unbounded_variables[:]
         return my_clone
@@ -55,10 +52,15 @@ def interpret_json_expression (
         if (opt == Variable.operator):
             var_name = json_obj[1] 
             latest_var, _ = exe_context.read_latest_var(var_name=var_name)
-            if (latest_var is None): 
+            if (latest_var is None): # The variable is not in the store... 
+                for unb_var in exe_context.unbounded_variables: # check if the variable is alreayd appeared as unbounded
+                    if (unb_var.name == var_name): 
+                        return unb_var
+                    
                 new_var = Variable(name=var_name)
                 exe_context.unbounded_variables.append(new_var)
                 return new_var
+            
             else: 
                 return latest_var
 
@@ -108,6 +110,13 @@ def interpret_json_statement (
 
         next_exe_context.executed_statements.append(AssignStatement(var=var, expr=expr)) 
         next_exe_context.store[var] = expr 
+
+    elif (stat_keyword == AssertStatement.keyword): 
+        assert(len(json_obj) == 2)
+
+        next_exe_context.executed_statements.append(AssertStatement(
+            bool_expr=interpret_json_expression(json_obj=json_obj[1], exe_context=next_exe_context)
+        ))
 
     else: 
         assert(False), f"Unknown statement keyword: {stat_keyword}"

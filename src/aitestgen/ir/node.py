@@ -77,6 +77,9 @@ class Variable (Expression):
         else: 
             return False 
         
+    def __str__(self) -> str:
+        return self.operands[0]
+        
     def to_json(self) -> Any:
         return [self.operator] + self.operands
         
@@ -222,4 +225,14 @@ class AssignStatement (Statement):
 
     def to_natural_language(self, *args, **kwargs) -> str:
         return f"{self.variable.to_natural_language()} is {self.expression.to_natural_language()}"
+    
+class AssertStatement (Statement): 
+    keyword = "assert" 
+
+    def __init__(self, bool_expr :Expression):
+        assert(isinstance(bool_expr, Expression))
+        self.bool_expression = bool_expr
+
+    def to_natural_language(self, *args, **kwargs) -> str:
+        return self.bool_expression.to_natural_language() 
     

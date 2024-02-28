@@ -2,15 +2,10 @@ from aitestgen.ir import node as ir_node
 from aitestgen.ir.interpreter import ExecutionContext
 from aitestgen.ir.interpreter import interpret_json_expression, interpret_json_statement 
 
+from utils import get_fresh_exe_context
+
 import logging 
 logging.basicConfig(level=logging.INFO)
-
-# ====
-# Utils
-# ====
-def get_fresh_exe_context (): 
-    ir_node.NEXT_VARIABLE_ID = 0
-    return ExecutionContext() 
 
 # ====
 # Tests for interpret_json_expression
@@ -98,3 +93,14 @@ def test_interpret_json_statement_1 ():
     assert(isinstance(exe_context, ExecutionContext))
     assert(len(exe_context.unbounded_variables) == 2)
     assert(exe_context.executed_statements[-1].to_natural_language() == "variable uvw_5 is variable pqr_2")
+
+def test_interpret_json_statement_2 (): 
+    exe_context = get_fresh_exe_context()  
+
+    json_stat = [":=", ["var", "xyz"], ["var", "abc"]] 
+    exe_context = interpret_json_statement(json_obj=json_stat, exe_context=exe_context)
+    assert(len(exe_context.unbounded_variables) == 1)
+
+    json_stat = ["assert", ["startsWith", ["var", "abc"], "www"]]
+    exe_context = interpret_json_statement(json_obj=json_stat, exe_context=exe_context)
+    assert(len(exe_context.unbounded_variables) == 1)
