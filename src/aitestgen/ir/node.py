@@ -1,3 +1,4 @@
+import re 
 from typing import List, Union, Any
 import json 
 
@@ -7,7 +8,14 @@ import json
 NEXT_VARIABLE_ID = 0 
 
 # ====
-# Class definition
+# Some util functions 
+# ====
+def preproc_generated_natural_language (nl_str :str): 
+    nl_str = re.sub(r"\s+", " ", nl_str)
+    return nl_str
+
+# ====
+# Class definition: Expression
 # ====
 class Expression : 
     operator :str = None 
@@ -44,7 +52,7 @@ class Constant (Expression):
         if (type(self.value) == str): 
             return f'"{self.value}"'
         else: 
-            return f"{self.value}"
+            return str(self.value).lower()
 
 class Variable (Expression): 
     operator :str = "var"
@@ -127,16 +135,17 @@ class StringOperation (Expression):
             if (self.operands[2] is not None): # ending index is given 
                 i_end = convert_programming_index_to_natural_language_index(self.operands[2]) 
                 nl_str = f"{nl_str} ending before the {i_end} character"
-            return nl_str
 
         elif (self.operator == "startsWith"): 
-            return f"{self.operands[0].to_natural_language()} {negator} starts with {self.operands[1].to_natural_language()}"
+            nl_str = f"{self.operands[0].to_natural_language()} {negator} starts with {self.operands[1].to_natural_language()}"
 
         elif (self.operands == "endsWith"): 
-            return f"{self.operands[0].to_natural_language()} {negator} ends with {self.operands[1].to_natural_language()}"
+            nl_str = f"{self.operands[0].to_natural_language()} {negator} ends with {self.operands[1].to_natural_language()}"
 
         else:
             assert(False)
+
+        return preproc_generated_natural_language(nl_str)
 
 class UnaryExpression (Expression): 
     operators = {
@@ -152,7 +161,7 @@ class UnaryExpression (Expression):
 
     def to_natural_language(self, *args, **kwargs) -> str:
         if (self.operator == "not"): 
-            return self.operands[0].to_natural_language(negated=True)
+            return f"not {self.operands[0].to_natural_language(negated=True)}" 
 
         else: 
             assert(False)
@@ -189,7 +198,7 @@ def parse_json_to_expression (json_obj :Union[List, str, int, float, bool]):
         opt = json_obj[0]
         assert(type(opt) is str), f"Invalid type of opt: {type(opt)}" 
 
-        opds = json_obj[1:] 
+        opds = [parse_json_to_expression(json_obj=json_opd) for json_opd in json_obj[1:]] 
 
         if (opt == Variable.operator):
             assert(len(opds) == 1) 
@@ -229,3 +238,36 @@ def count_num_leaf_variables (expr :Expression):
         for opd in expr.operands: 
             leaves += count_num_leaf_variables(opd) 
         return leaves
+    
+# ====
+# Class definition: Statement
+# ==== 
+class Statement: 
+    keyword :str = None
+    body :List = None
+
+    def __init__ (self): 
+        pass 
+
+    def to_json (self) -> Any:
+        return json.dumps([self.keyword] + [content.to_json() for content in self.body])
+
+    def __str__(self) -> str:
+        return str(self.to_json())
+    
+    def to_natural_language(self, *args, **kwargs) -> str:
+        return "" 
+
+class AssignStatement (Statement): 
+    keyword = ":=" 
+
+    def __init__(self, var :Variable, expr :Expression):
+        assert(isinstance(var, Variable))
+        assert(isinstance(expr, Expression))
+
+        self.variable = var 
+        self.expression = expr
+        self.body = [self.expression]
+
+    def to_natural_language(self, *args, **kwargs) -> str:
+        return f"{self.variable.to_natural_language()} is {self.expression.to_natural_language()}"
