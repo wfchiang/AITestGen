@@ -77,9 +77,11 @@ class Variable (Expression):
         else: 
             return False 
         
+    def to_json(self) -> Any:
+        return [self.operator] + self.operands
+        
     def to_natural_language(self, *args, **kwargs) -> str:
-        if (self.var_type is str):
-            return f"variable {self.operands[0]}"
+        return f"variable {self.operands[0]}"
         
     @classmethod
     def get_tmp_var (cls): 
@@ -187,57 +189,6 @@ class BinaryExpression (Expression):
 
         else: 
             assert(False)
-
-# ====
-# Parser function 
-# ====
-def parse_json_to_expression (json_obj :Union[List, str, int, float, bool]): 
-    if (isinstance(json_obj, List)): 
-        assert(len(json_obj) >= 2) 
-
-        opt = json_obj[0]
-        assert(type(opt) is str), f"Invalid type of opt: {type(opt)}" 
-
-        opds = [parse_json_to_expression(json_obj=json_opd) for json_opd in json_obj[1:]] 
-
-        if (opt == Variable.operator):
-            assert(len(opds) == 1) 
-            return Variable(name=opds[0])
-
-        elif (opt in StringOperation.operators): 
-            return StringOperation(opt=opt, opds=opds)
-        
-        elif (opt in UnaryExpression.operators): 
-            assert(len(opds) == 1)
-            return UnaryExpression(opt=opt, opd=opds[0]) 
-        
-        elif (opt in BinaryExpression.operators):
-            assert(len(opds) == 2)
-            return BinaryExpression(opt=opt, lhs=opds[0], rhs=opds[1])
-    
-        else: 
-            assert(False), f"Invalid json list: {json_obj}"
-
-    elif (type(json_obj) in [str, int, float, bool]): 
-        return Constant(json_obj)
-    
-    else: 
-        assert(False), f"Invalid type of json_obj: {type(json_obj)}"
-    
-# ====
-# Some util functions 
-# ====
-# Given an Expression, count the number of variables as "leaf" in the Expression 
-def count_num_leaf_variables (expr :Expression): 
-    if (isinstance(expr, Constant)): 
-        return 0 
-    elif (isinstance(expr, Variable)): 
-        return 1 
-    else: 
-        leaves = 0 
-        for opd in expr.operands: 
-            leaves += count_num_leaf_variables(opd) 
-        return leaves
     
 # ====
 # Class definition: Statement
@@ -271,3 +222,4 @@ class AssignStatement (Statement):
 
     def to_natural_language(self, *args, **kwargs) -> str:
         return f"{self.variable.to_natural_language()} is {self.expression.to_natural_language()}"
+    
