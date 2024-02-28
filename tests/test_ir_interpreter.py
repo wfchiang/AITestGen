@@ -78,19 +78,23 @@ def test_interpret_json_statement_1 ():
     json_stat = [":=", ["var", "xyz"], ["var", "abc"]] 
     exe_context = interpret_json_statement(json_obj=json_stat, exe_context=exe_context)
     assert(isinstance(exe_context, ExecutionContext))
+    assert(len(exe_context.unbounded_variables) == 1)
     assert(exe_context.executed_statements[-1].to_natural_language() == "variable xyz_0 is variable abc_1")
 
     json_stat = [":=", ["var", "pqr"], ["var", "xyz"]]
     exe_context = interpret_json_statement(json_obj=json_stat, exe_context=exe_context)
     assert(isinstance(exe_context, ExecutionContext))
+    assert(len(exe_context.unbounded_variables) == 1)
     assert(exe_context.executed_statements[-1].to_natural_language() == "variable pqr_2 is variable xyz_0")
 
     json_stat = [":=", ["var", "xyz"], ["var", "ijk"]]
     exe_context = interpret_json_statement(json_obj=json_stat, exe_context=exe_context)
     assert(isinstance(exe_context, ExecutionContext))
+    assert(len(exe_context.unbounded_variables) == 2)
     assert(exe_context.executed_statements[-1].to_natural_language() == "variable xyz_3 is variable ijk_4")
 
     json_stat = [":=", ["var", "uvw"], ["var", "pqr"]]
     exe_context = interpret_json_statement(json_obj=json_stat, exe_context=exe_context)
     assert(isinstance(exe_context, ExecutionContext))
+    assert(len(exe_context.unbounded_variables) == 2)
     assert(exe_context.executed_statements[-1].to_natural_language() == "variable uvw_5 is variable pqr_2")

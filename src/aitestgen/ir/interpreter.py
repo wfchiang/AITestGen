@@ -14,12 +14,14 @@ class ExecutionContext :
         self.store = {} # Variable (Expression) -> Expression
         self.conditions = [] 
         self.executed_statements = []
+        self.unbounded_variables = [] 
 
     def clone (self): 
         my_clone = ExecutionContext() 
         my_clone.store = { k:v for k,v in self.store.items() }
         my_clone.conditions = self.conditions[:]
         my_clone.executed_statements = self.executed_statements[:]
+        my_clone.unbounded_variables = self.unbounded_variables[:]
         return my_clone
     
     def read_latest_var (self, var_name :str) -> Tuple[Union[Expression, None], Union[Expression, None]]: 
@@ -39,6 +41,11 @@ def interpret_json_expression (
         json_obj :Union[List, str, int, float, bool], 
         exe_context :ExecutionContext
 ) -> Expression: 
+    """
+    This function will cause side-effects to exe_context (ExecutionContext)
+    1. add unbounded variables
+    """
+    
     if (isinstance(json_obj, List)): 
         assert(len(json_obj) >= 2) 
 
@@ -49,7 +56,9 @@ def interpret_json_expression (
             var_name = json_obj[1] 
             latest_var, _ = exe_context.read_latest_var(var_name=var_name)
             if (latest_var is None): 
-                return Variable(name=var_name)
+                new_var = Variable(name=var_name)
+                exe_context.unbounded_variables.append(new_var)
+                return new_var
             else: 
                 return latest_var
 
@@ -95,7 +104,7 @@ def interpret_json_statement (
         var_name = json_obj[1][1] 
         var = Variable(name=var_name)
 
-        expr = interpret_json_expression(json_obj[2], exe_context=exe_context)
+        expr = interpret_json_expression(json_obj[2], exe_context=next_exe_context)
 
         next_exe_context.executed_statements.append(AssignStatement(var=var, expr=expr)) 
         next_exe_context.store[var] = expr 
