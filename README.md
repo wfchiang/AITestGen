@@ -33,7 +33,17 @@ Then run Pytest:
 pytest -s tests 
 ``` 
 
-### Publish Python Package 
+### Publish Docker Images
+
+Make sure `gcloud` is authorized: 
+
+```BASH
+gcloud auth configure-docker us-east4-docker.pkg.dev
+```
+
+Tag the image as `us-east4-docker.pkg.dev/wfchiang-dev/docker-repo/aitestgen:<version>`, then push it. 
+
+### Publish Python Packages 
 
 **One-time Setup**
 
