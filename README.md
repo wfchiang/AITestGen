@@ -3,12 +3,18 @@
 This is about AI driven test generation. 
 The proof-of-concept is implemented in Python. 
 
-### Running the web application
+## Docker build and run 
 
-Under directory `web_app`, run: 
+**Docker build** 
 
-```BASH 
-streamlit run app.py 
+```BASH
+docker build -t aitestgen:0.2.0 .
+```
+
+**Docker run** 
+
+```BASH
+docker run -p 8000:8000 aitestgen:0.2.0
 ```
 
 ## Notes for me 
@@ -27,7 +33,17 @@ Then run Pytest:
 pytest -s tests 
 ``` 
 
-### Publish Python Package 
+### Publish Docker Images
+
+Make sure `gcloud` is authorized: 
+
+```BASH
+gcloud auth configure-docker us-east4-docker.pkg.dev
+```
+
+Tag the image as `us-east4-docker.pkg.dev/wfchiang-dev/docker-repo/aitestgen:<version>`, then push it. 
+
+### Publish Python Packages 
 
 **One-time Setup**
 
