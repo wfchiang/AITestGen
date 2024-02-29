@@ -1,12 +1,10 @@
 import os 
 from abc import ABC, abstractmethod
-from typing import Dict
+from typing import Dict, List 
 import requests
 
-from ..ir import node as ir_node 
-from ..ir.symbolic_executor import ExecutionContext
+from .json_2_prompt import generate_prompt_from_json_statements
 
-from ..parser import ir_2_llm_prompt 
 
 # ====
 # Abstract LLM client 
@@ -16,7 +14,7 @@ class AbstractLLMClient (ABC):
         super().__init__() 
 
     @abstractmethod
-    def solve_context (exe_context :ExecutionContext) -> Dict: 
+    def solve_json_statements (json_statements :List) -> Dict: 
         pass 
         
 
@@ -27,12 +25,13 @@ class ChatGPTClient (AbstractLLMClient):
     def __init__(
             self, 
             openai_api_key :str=None, 
-            model :str='text-davinci-003', 
+            model :str='gpt-3.5-turbo', 
+            endpoint_url :str="https://api.openai.com/v1/chat/completions", 
             default_max_tokens :int=256
     ) -> None:
         super().__init__()
 
-        self.openai_url = 'https://api.openai.com/v1/completions'
+        self.openai_url = endpoint_url
 
         # configure openai authentication 
         if (type(openai_api_key) is not str): 
@@ -45,13 +44,13 @@ class ChatGPTClient (AbstractLLMClient):
         self.default_max_tokens = default_max_tokens 
         self.temperature = 0.0 
 
-    def solve_context(
+    def solve_json_statements(
             self, 
-            exe_context: ExecutionContext, 
+            json_statements: List, 
             max_tokens :int=None
     ) -> Dict:
         # generate the prompt from the execution context 
-        prompt = ir_2_llm_prompt.generate_prompt_from_execution_context(exe_context) 
+        prompt = generate_prompt_from_json_statements(json_statements=json_statements)
 
         # call ChatGPT for the answer 
         chatgpt_reps = requests.post(
@@ -61,12 +60,14 @@ class ChatGPTClient (AbstractLLMClient):
             }, 
             json={
                 'model': self.model, 
-                'prompt': prompt, 
+                "messages": [
+                    {"role": "user", "content": prompt}
+                ], 
                 'max_tokens': (max_tokens if (type(max_tokens) is int and max_tokens > 0) else self.default_max_tokens), 
                 'temperature': self.temperature
             }
         ) 
-        assert(chatgpt_reps.status_code == 200)
+        assert(chatgpt_reps.status_code == 200), f"Failed to call OpenAI ({chatgpt_reps.status_code}): {chatgpt_reps.content}"
 
         chatgpt_reps = chatgpt_reps.json() # get the response payload 
 
@@ -76,8 +77,8 @@ class ChatGPTClient (AbstractLLMClient):
         assert(len(chatgpt_reps['choices']) > 0) 
 
         top_chatgpt_choice = chatgpt_reps['choices'][0] 
-        assert(isinstance(top_chatgpt_choice, Dict) and 'text' in top_chatgpt_choice)
-        chatgpt_saying = top_chatgpt_choice['text'] 
+        assert(isinstance(top_chatgpt_choice, Dict) and 'message' in top_chatgpt_choice)
+        chatgpt_saying = top_chatgpt_choice['message']["content"] 
 
         # parase ChatGPT's answer 
         saying_lines = chatgpt_saying.split('\n')
@@ -92,16 +93,7 @@ class ChatGPTClient (AbstractLLMClient):
                 val = saying[i+1:].strip().strip('"') 
                 var_name_2_str_val[var_name] = val 
 
-        # create a Solution object 
-        solution = ir_node.Solution() 
-        for var in exe_context.store.keys(): 
-            var_name = str(var) 
-            if (var_name in var_name_2_str_val): 
-                val = ir_node.Constant(var_name_2_str_val[var_name])
-                solution.add(var, val)
-                continue 
-
         # return 
-        return solution 
+        return var_name_2_str_val 
 
     

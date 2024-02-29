@@ -18,5 +18,5 @@ def test_generate_prompt_from_json_statements_0 ():
         ]
     )
 
-    logging.info(final_prompt)
+    # logging.info(final_prompt)
     
