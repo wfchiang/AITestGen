@@ -28,6 +28,6 @@ def test_client_0 ():
         assert("abc_1" in solution) 
         assert(solution["abc_1"].startswith("www"))
 
-    else: 
-        logging.info(f"Skipped because OPENAI_API_KEY is not set")
+    else:
+        assert(False), f"Skipped because OPENAI_API_KEY is not set"
     

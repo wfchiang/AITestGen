@@ -3,12 +3,18 @@
 This is about AI driven test generation. 
 The proof-of-concept is implemented in Python. 
 
-### Running the web application
+## Docker build and run 
 
-Under directory `web_app`, run: 
+**Docker build** 
 
-```BASH 
-streamlit run app.py 
+```BASH
+docker build -t aitestgen:0.2.0 .
+```
+
+**Docker run** 
+
+```BASH
+docker run -p 8000:8000 aitestgen:0.2.0
 ```
 
 ## Notes for me 
