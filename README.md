@@ -63,5 +63,11 @@ Tag the image as `us-east4-docker.pkg.dev/wfchiang-dev/docker-repo/aitestgen:<ve
 **Publication command**
 
 ```BASH
+poetry build
+``` 
+
+then 
+
+```BASH
 poetry publish -r google 
 ```
