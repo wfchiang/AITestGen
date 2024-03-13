@@ -144,7 +144,7 @@ class StringOperation (Expression):
         elif (self.operator == "startsWith"): 
             nl_str = f"{self.operands[0].to_natural_language()} {negator} starts with {self.operands[1].to_natural_language()}"
 
-        elif (self.operands == "endsWith"): 
+        elif (self.operator == "endsWith"): 
             nl_str = f"{self.operands[0].to_natural_language()} {negator} ends with {self.operands[1].to_natural_language()}"
 
         else:
