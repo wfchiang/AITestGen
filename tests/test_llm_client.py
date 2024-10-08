@@ -1,4 +1,5 @@
 import os 
+from dotenv import load_dotenv
 from aitestgen.llm.client import ChatGPTClient 
 
 from utils import get_fresh_exe_context
@@ -6,13 +7,15 @@ from utils import get_fresh_exe_context
 import logging
 logging.basicConfig(level=logging.INFO)
 
+load_dotenv() 
+
 # ====
 # Tests for generate_prompt_from_json_statements
 # ====
 def test_client_0 (): 
     get_fresh_exe_context() 
 
-    openai_api_key = os.environ.get("OPENAI_API_KEY", None) 
+    openai_api_key = os.environ["OPENAI_API_KEY"] 
     if (type(openai_api_key) is str): 
         client = ChatGPTClient(openai_api_key=openai_api_key)
 
@@ -34,7 +37,7 @@ def test_client_0 ():
 def test_client_1 (): 
     get_fresh_exe_context() 
 
-    openai_api_key = os.environ.get("OPENAI_API_KEY", None) 
+    openai_api_key = os.environ["OPENAI_API_KEY"] 
     if (type(openai_api_key) is str): 
         client = ChatGPTClient(openai_api_key=openai_api_key)
 

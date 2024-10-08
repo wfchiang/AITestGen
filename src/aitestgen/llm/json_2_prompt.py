@@ -8,6 +8,7 @@ logging.basicConfig(level=logging.INFO)
 # ==== 
 # Globals 
 # ====
+SYSTEM_MESSAGE = "You are a rational thinker. You will be given a relation system of string variables, and find possible texts for the unknown variables." 
 
 # ====
 # Json statement execution 
@@ -61,10 +62,7 @@ def generate_prompt_from_json_statements (json_statements :List) -> str:
         else 'Here are the variables in the system: {}. '.format(', '.join([str(v) for v in all_vars]))
     )
 
-    final_prompt += f"""
-You are a rational thinker. You will be given a relation system of string variables, and find possible texts for the unknown variables. 
-{all_vars_sent} 
-"""
+    final_prompt += all_vars_sent
 
     # generate sentences from the context 
     exe_context_sents = dump_execution_context_to_sentences(exe_context) 
