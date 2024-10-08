@@ -162,3 +162,4 @@ cython_debug/
 # my local scripts 
 local_*.sh
 tmp.py
+.env

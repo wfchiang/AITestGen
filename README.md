@@ -52,10 +52,10 @@ docker run -p 8000:8000 aitestgen:0.2.0
 
 ### Unit-testing with PyTest 
 
-First setup your own OpenAI key: 
+Create a `.env` with... 
 
 ```BASH 
-export OPENAI_API_KEY=<your_openai_api_hey>
+OPENAI_API_KEY=<your_openai_api_hey>
 ```
 
 Then run Pytest: 

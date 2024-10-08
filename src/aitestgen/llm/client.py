@@ -1,9 +1,15 @@
 import os 
 from abc import ABC, abstractmethod
 from typing import Dict, List 
-import requests
 
-from .json_2_prompt import generate_prompt_from_json_statements
+from langchain_core.prompts import ChatPromptTemplate
+from langchain_core.output_parsers import StrOutputParser 
+from langchain_openai.chat_models import ChatOpenAI
+
+from .json_2_prompt import SYSTEM_MESSAGE, generate_prompt_from_json_statements
+
+import logging 
+logging.basicConfig(level=logging.INFO)
 
 
 # ====
@@ -26,12 +32,10 @@ class ChatGPTClient (AbstractLLMClient):
             self, 
             openai_api_key :str=None, 
             model :str='gpt-3.5-turbo', 
-            endpoint_url :str="https://api.openai.com/v1/chat/completions", 
+            endpoint_url :str=None, # "https://api.openai.com/v1/chat/completions", 
             default_max_tokens :int=256
     ) -> None:
         super().__init__()
-
-        self.openai_url = endpoint_url
 
         # configure openai authentication 
         if (type(openai_api_key) is not str): 
@@ -40,9 +44,31 @@ class ChatGPTClient (AbstractLLMClient):
         self.openai_api_key = openai_api_key
 
         # configure parameters 
-        self.model = model 
+        self.model = model
+        self.openai_url = endpoint_url 
         self.default_max_tokens = default_max_tokens 
         self.temperature = 0.0 
+
+        # build the LLM chain 
+        self.prompt_template = ChatPromptTemplate.from_messages(
+            messages=[
+                ("system", SYSTEM_MESSAGE), 
+                ("human", "{statements}")
+            ]
+        )
+        
+        self.llm = ChatOpenAI(
+            model=self.model, 
+            temperature=self.temperature,
+            api_key=self.openai_api_key, 
+            max_tokens=self.default_max_tokens,  
+            base_url=self.openai_url, 
+            verbose=True
+        )
+
+        self.output_parser = StrOutputParser() 
+
+        self.llm_chain = self.prompt_template | self.llm | self.output_parser 
 
     def solve_json_statements(
             self, 
@@ -53,32 +79,9 @@ class ChatGPTClient (AbstractLLMClient):
         prompt = generate_prompt_from_json_statements(json_statements=json_statements)
 
         # call ChatGPT for the answer 
-        chatgpt_reps = requests.post(
-            self.openai_url, 
-            headers={
-                'Authorization': 'Bearer ' + self.openai_api_key
-            }, 
-            json={
-                'model': self.model, 
-                "messages": [
-                    {"role": "user", "content": prompt}
-                ], 
-                'max_tokens': (max_tokens if (type(max_tokens) is int and max_tokens > 0) else self.default_max_tokens), 
-                'temperature': self.temperature
-            }
-        ) 
-        assert(chatgpt_reps.status_code == 200), f"Failed to call OpenAI ({chatgpt_reps.status_code}): {chatgpt_reps.content}"
-
-        chatgpt_reps = chatgpt_reps.json() # get the response payload 
-
-        # retrieve ChatGpt's top-choice answer 
-        assert(isinstance(chatgpt_reps, Dict)) 
-        assert('choices' in chatgpt_reps)
-        assert(len(chatgpt_reps['choices']) > 0) 
-
-        top_chatgpt_choice = chatgpt_reps['choices'][0] 
-        assert(isinstance(top_chatgpt_choice, Dict) and 'message' in top_chatgpt_choice)
-        chatgpt_saying = top_chatgpt_choice['message']["content"] 
+        chatgpt_saying = self.llm_chain.invoke({
+            "statements": prompt
+        })
 
         # parase ChatGPT's answer 
         saying_lines = chatgpt_saying.split('\n')
